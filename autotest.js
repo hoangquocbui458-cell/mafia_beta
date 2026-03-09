@@ -92,7 +92,7 @@ test('Role config valid: requires mafia + citizens and only one boss', () => {
 
 test('setRoleCount clamps boss to [0..1] and others to [0..inf)', () => {
   const g = new GameEngine();
-  g.players = [{}, {}, {}, {}];
+  g.players = [{}, {}, {}, {}, {}, {}, {}, {}];
   g.roleConfig = { Mafia: 1, MafiaBoss: 0, Maniac: 0, Detective: 1, Doctor: 1, Bodyguard: 0, Lucky: 0, Mistress: 0 };
 
   g.setRoleCount('MafiaBoss', 5);
@@ -104,8 +104,9 @@ test('setRoleCount clamps boss to [0..1] and others to [0..inf)', () => {
   g.setRoleCount('Doctor', -10);
   assertEqual(g.roleConfig.Doctor, 0, 'Regular roles must clamp min at 0');
 
+  const expectedMaxMafia = g.getMaxAllowedRoleCount('Mafia');
   g.setRoleCount('Mafia', 10);
-  assertEqual(g.roleConfig.Mafia, 3, 'Role count must be capped to keep at least one citizen');
+  assertEqual(g.roleConfig.Mafia, expectedMaxMafia, 'Role count must be capped to keep at least one citizen');
 });
 
 test('Mistress count is blocked without Detective and dropped if Detective removed', () => {
@@ -221,9 +222,10 @@ test('skipNightAction for Doctor clears protection and consecutive lock', () => 
   ]);
   g.startNight();
   g.roleStates.Doctor = { protected: 1, lastTarget: 1 };
-  g.skipNightAction();
-  assertEqual(g.roleStates.Doctor.protected, null, 'Doctor protected must be null after skip');
-  assertEqual(g.roleStates.Doctor.lastTarget, null, 'Doctor lastTarget must reset after skip');
+  const out = g.skipNightAction();
+  assert(!!out.error, 'Doctor must not be allowed to skip');
+  assertEqual(g.roleStates.Doctor.protected, 1, 'Doctor protected must stay unchanged when skip is forbidden');
+  assertEqual(g.roleStates.Doctor.lastTarget, 1, 'Doctor lastTarget must stay unchanged when skip is forbidden');
 });
 
 // ---------- Role Restrictions ----------
@@ -363,7 +365,7 @@ test('Mistress flips detective result: evil target becomes clean', () => {
   g.processNight();
 
   const logs = g.getLog().map(l => l.text).join('\n');
-  assertIncludes(logs, 'ЧИСТ 😊', 'Evil target should appear clean after Mistress');
+  assertIncludes(logs, 'ЧИСТЫЙ 😊', 'Evil target should appear clean after Mistress');
   assertIncludes(logs, 'Любовница вмешалась', 'Must log mistress interference');
 });
 
@@ -379,7 +381,7 @@ test('Mistress flips detective result: clean target becomes mafia', () => {
   g.processNight();
 
   const logs = g.getLog().map(l => l.text).join('\n');
-  assertIncludes(logs, 'МАФИЯ 👺', 'Clean target should appear evil after Mistress');
+  assertIncludes(logs, 'ГРЯЗНЫЙ 👺', 'Clean target should appear evil after Mistress');
 });
 
 test('Boss transfer triggers when boss dies and alive mafia exists', () => {
@@ -498,7 +500,7 @@ test('Mafia wins at parity (including MafiaBoss in mafia side)', () => {
   assertEqual(out.winner, 'Mafia', 'Mafia side must include MafiaBoss');
 });
 
-test('Maniac wins only when <=2 alive and mafia side is dead', () => {
+test('Maniac wins in 1v1 with any opponent', () => {
   const g = makeGame([
     { role: 'Maniac' },
     { role: 'Citizen' },
@@ -511,7 +513,23 @@ test('Maniac wins only when <=2 alive and mafia side is dead', () => {
     { role: 'Mafia' },
   ]);
   out = g2.checkWinCondition();
-  assertEqual(out.winner, 'Mafia', 'Mafia has priority when mafia alive and parity reached');
+  assertEqual(out.winner, 'Maniac', 'Maniac should win in 1v1 with mafia as well');
+
+  const g3 = makeGame([
+    { role: 'Maniac' },
+    { role: 'Mistress' },
+  ]);
+  out = g3.checkWinCondition();
+  assertEqual(out.winner, 'Maniac', 'Maniac should win in 1v1 with mistress as well');
+});
+
+test('Mistress is counted in mafia side for parity victory', () => {
+  const g = makeGame([
+    { role: 'Mistress' },
+    { role: 'Citizen' },
+  ]);
+  const out = g.checkWinCondition();
+  assertEqual(out.winner, 'Mafia', 'Mistress should contribute to mafia-side parity win');
 });
 
 test('Citizens win when no mafia and no maniac alive', () => {
@@ -521,6 +539,125 @@ test('Citizens win when no mafia and no maniac alive', () => {
   ]);
   const out = g.checkWinCondition();
   assertEqual(out.winner, 'Citizens', 'Citizens should win when evil/neutral killers gone');
+});
+
+test('Winner priority: Maniac 1v1 has precedence over mafia parity', () => {
+  const g = makeGame([
+    { role: 'Maniac' },
+    { role: 'Mafia' },
+  ]);
+  const out = g.checkWinCondition();
+  assertEqual(out.winner, 'Maniac', 'In 1v1 Maniac must win even if mafia parity is also true');
+});
+
+test('Maniac 1v1 matrix against every role', () => {
+  const opponents = ['Citizen', 'Doctor', 'Detective', 'Bodyguard', 'Lucky', 'Mistress', 'Mafia', 'MafiaBoss'];
+  opponents.forEach(opponentRole => {
+    const g = makeGame([
+      { role: 'Maniac' },
+      { role: opponentRole },
+    ]);
+    const out = g.checkWinCondition();
+    assertEqual(out.winner, 'Maniac', `Maniac must win 1v1 vs ${opponentRole}`);
+  });
+});
+
+test('Maniac does not auto-win when alive players are more than 2', () => {
+  const g = makeGame([
+    { role: 'Maniac' },
+    { role: 'Citizen' },
+    { role: 'Doctor' },
+  ]);
+  const out = g.checkWinCondition();
+  assertEqual(out, null, 'Maniac should not win before game reaches 1v1 state');
+});
+
+test('Mistress contributes to mafia-side win after lifecycle transitions', () => {
+  const g = makeGame([
+    { role: 'Mistress' },
+    { role: 'Citizen' },
+    { role: 'Citizen' },
+  ]);
+
+  g.startNight();
+  g.nightActions = {};
+  g.processNight();
+  let out = g.checkWinCondition();
+  assertEqual(out, null, 'With 3 alive, mistress alone should not have parity yet');
+
+  g.isDay = true;
+  g.vote(1, 2);
+  out = g.castVote();
+  assertEqual(out.phase, 'WIN', 'Exiling one citizen should produce parity win for mistress side');
+  assertEqual(out.winner, 'Mafia', 'Mistress side must win with mafia parity');
+});
+
+test('Winner is deterministic for same role multiset regardless of player order', () => {
+  const baseRoles = ['Mistress', 'Citizen', 'Maniac', 'Doctor'];
+
+  function permute(arr, l, acc) {
+    if (l === arr.length - 1) {
+      acc.push(arr.slice());
+      return;
+    }
+    for (let i = l; i < arr.length; i++) {
+      [arr[l], arr[i]] = [arr[i], arr[l]];
+      permute(arr, l + 1, acc);
+      [arr[l], arr[i]] = [arr[i], arr[l]];
+    }
+  }
+
+  const permutations = [];
+  permute(baseRoles.slice(), 0, permutations);
+
+  let expected = null;
+  permutations.forEach((roles, idx) => {
+    const g = makeGame(roles.map(role => ({ role })));
+    const out = g.checkWinCondition();
+    const winner = out ? out.winner : null;
+
+    if (idx === 0) {
+      expected = winner;
+    } else {
+      assertEqual(winner, expected, 'Winner must be invariant to player ordering for same role multiset');
+    }
+  });
+});
+
+test('Winner remains stable after terminal state is reached', () => {
+  const g = makeGame([
+    { role: 'Maniac' },
+    { role: 'Citizen' },
+  ]);
+
+  const first = g.checkWinCondition();
+  assertEqual(first.winner, 'Maniac', 'Maniac should be the initial winner in 1v1');
+
+  // Даже если внешне кто-то случайно вызовет проверку повторно,
+  // финальный winner не должен прыгать между сторонами.
+  g.players[1].isEliminated = true;
+  const second = g.checkWinCondition();
+  assertEqual(second.winner, 'Maniac', 'Winner should stay stable after terminal state');
+  assertEqual(g.winner, 'Maniac', 'Stored winner should remain the same');
+});
+
+test('Random winner oracle consistency (5000 random alive states)', () => {
+  const rolePool = ['Citizen', 'Mafia', 'MafiaBoss', 'Mistress', 'Maniac', 'Doctor', 'Detective', 'Bodyguard', 'Lucky'];
+
+  for (let i = 0; i < 5000; i++) {
+    const n = 1 + Math.floor(Math.random() * 8);
+    const roles = [];
+    for (let j = 0; j < n; j++) {
+      roles.push(rolePool[Math.floor(Math.random() * rolePool.length)]);
+    }
+
+    const g = makeGame(roles.map(role => ({ role })));
+    const out = g.checkWinCondition();
+    const actual = out ? out.winner : null;
+    const expected = expectedWinnerByCurrentRules(roles);
+
+    assertEqual(actual, expected, `Random oracle mismatch for roles=[${roles.join(', ')}]`);
+  }
 });
 
 test('endNight increments night and respects win checks', () => {
@@ -550,7 +687,111 @@ test('RoleUtils fallback handler and alignment lookup are stable', () => {
   const g = makeGame([{ role: 'Citizen' }]);
   assertEqual(RoleUtils.canSelectTarget('UnknownRole', 0, g), false, 'Unknown role should fallback to Citizen logic');
   assertEqual(RoleUtils.getAlignment('MafiaBoss'), 'evil', 'MafiaBoss alignment must be evil');
+  assertEqual(RoleUtils.getAlignment('Mistress'), 'evil', 'Mistress alignment must be evil');
   assertEqual(RoleUtils.getAlignment('NonExistentRole'), 'neutral', 'Unknown alignment should fallback to neutral');
+});
+
+// ---------- Exhaustive / Stress ----------
+
+function expectedWinnerByCurrentRules(aliveRoles) {
+  const total = aliveRoles.length;
+  const maniac = aliveRoles.filter(r => r === 'Maniac').length;
+  const mafiaSide = aliveRoles.filter(r => r === 'Mafia' || r === 'MafiaBoss' || r === 'Mistress').length;
+
+  if (maniac === 1 && total <= 2) return 'Maniac';
+  if (mafiaSide > 0 && mafiaSide >= (total - mafiaSide - maniac)) return 'Mafia';
+  if (mafiaSide === 0 && maniac === 0) return 'Citizens';
+
+  return null;
+}
+
+function forEachRoleAssignment(rolePool, length, cb) {
+  if (length <= 0) {
+    cb([]);
+    return;
+  }
+
+  const indexes = Array(length).fill(0);
+  while (true) {
+    cb(indexes.map(i => rolePool[i]));
+
+    let pos = length - 1;
+    while (pos >= 0 && indexes[pos] === rolePool.length - 1) {
+      indexes[pos] = 0;
+      pos -= 1;
+    }
+
+    if (pos < 0) break;
+    indexes[pos] += 1;
+  }
+}
+
+test('Exhaustive winner matrix matches declared rules for all role assignments up to 4 players', () => {
+  const rolePool = ['Citizen', 'Mafia', 'MafiaBoss', 'Mistress', 'Maniac', 'Doctor', 'Detective', 'Bodyguard', 'Lucky'];
+  const mismatches = [];
+  let checked = 0;
+
+  for (let n = 1; n <= 4; n++) {
+    forEachRoleAssignment(rolePool, n, (roles) => {
+      const g = makeGame(roles.map(role => ({ role })));
+      const out = g.checkWinCondition();
+      const actual = out ? out.winner : null;
+      const expected = expectedWinnerByCurrentRules(roles);
+      checked += 1;
+
+      if (actual !== expected && mismatches.length < 25) {
+        mismatches.push({
+          roles: roles.join(', '),
+          expected: expected || 'NO_WINNER',
+          actual: actual || 'NO_WINNER'
+        });
+      }
+    });
+  }
+
+  assertEqual(mismatches.length, 0, `Winner matrix mismatches found (${checked} states checked): ${JSON.stringify(mismatches)}`);
+});
+
+test('Night resolution stress: no crashes and no duplicate kills across dense action matrix', () => {
+  const targets = [null, 0, 1, 2, 3, 4, 5];
+  let scenarios = 0;
+
+  for (const doctorTarget of targets) {
+    for (const bodyguardTarget of targets) {
+      for (const mafiaTarget of targets) {
+        for (const maniacTarget of targets) {
+          const g = makeGame([
+            { role: 'Doctor' },
+            { role: 'Bodyguard' },
+            { role: 'Mafia' },
+            { role: 'Maniac' },
+            { role: 'Citizen' },
+            { role: 'Lucky' },
+          ]);
+
+          g.startNight();
+          g.roleStates.Doctor = { protected: doctorTarget, lastTarget: null };
+          g.roleStates.Bodyguard = { protected: bodyguardTarget };
+
+          if (mafiaTarget !== null) g.nightActions.Mafia = { target: mafiaTarget };
+          if (maniacTarget !== null) g.nightActions.Maniac = { target: maniacTarget };
+
+          const out = g.processNight();
+          scenarios += 1;
+
+          const uniqueKilled = new Set(out.killed);
+          assertEqual(uniqueKilled.size, out.killed.length, 'Killed list must not contain duplicate indexes');
+
+          out.killed.forEach(idx => {
+            assert(idx >= 0 && idx < g.players.length, 'Killed index must be within players range');
+            assertEqual(g.players[idx].isEliminated, true, 'Killed player must be marked eliminated');
+          });
+        }
+      }
+    }
+  }
+
+  assert(scenarios >= 2401, 'Night stress matrix should cover full action space');
 });
 
 // ---------- Runner ----------
