@@ -474,7 +474,20 @@ const UIManager = {
                 topInfoStack.className = 'top-info-stack';
             }
             const actorLabel = this.getNightRoleActorLabel(currentRole);
-            nP.innerHTML = `<h3>Ходит ${roleInfo.displayName} ${roleInfo.emoji} → ${actorLabel}</h3>`;
+            const roleBrief = ConfigUtils.getNightRoleBrief(currentRole);
+            let roleBriefHtml = '';
+
+            if (roleBrief) {
+                roleBriefHtml = `
+                    <div class="night-role-brief">
+                        <p class="brief-line"><span class="brief-label">Мотивация:</span> ${roleBrief.motivation}</p>
+                        <p class="brief-line"><span class="brief-label">Способность:</span> ${roleBrief.abilities}</p>
+                        <p class="brief-line"><span class="brief-label">Цель:</span> ${roleBrief.goal}</p>
+                    </div>
+                `;
+            }
+
+            nP.innerHTML = `<h3>Ходит ${roleInfo.displayName} ${roleInfo.emoji} → ${actorLabel}</h3>${roleBriefHtml}`;
             vS.innerText = '';
 
             if (currentRole === 'Detective' && gameEngine.roleStates.Mistress?.target !== undefined && gameEngine.roleStates.Mistress?.target !== null) {

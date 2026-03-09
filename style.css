@@ -430,6 +430,29 @@ body::before {
     line-height: 1.2;
 }
 
+.night-role-brief {
+    margin-top: 8px;
+    padding: 8px 10px;
+    border: 1px solid rgba(191, 206, 230, 0.16);
+    border-radius: 10px;
+    background: rgba(191, 206, 230, 0.06);
+}
+
+.night-role-brief .brief-line {
+    margin: 0 0 4px 0 !important;
+    line-height: 1.35 !important;
+    color: #d9e2f0 !important;
+}
+
+.night-role-brief .brief-line:last-child {
+    margin-bottom: 0 !important;
+}
+
+.night-role-brief .brief-label {
+    color: #b7c6dc;
+    font-weight: 700;
+}
+
 #nightStatusPanel:empty, #voteStat:empty, #roleLimitInfo:empty { display: none !important; }
 
 /* Цветовые линии фаз */
