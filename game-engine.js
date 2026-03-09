@@ -632,28 +632,29 @@ class GameEngine {
      */
     checkWinCondition() {
         const alivePlayers = this.getAlivePlayers();
-        const mafia = alivePlayers.filter(p => p.role === 'Mafia' || p.role === 'MafiaBoss').length;
+        const mafiaSide = alivePlayers.filter(p => p.role === 'Mafia' || p.role === 'MafiaBoss' || p.role === 'Mistress').length;
         const maniac = alivePlayers.filter(p => p.role === 'Maniac').length;
         const total = alivePlayers.length;
 
-        // Мафия
-        if (mafia > 0 && mafia >= (total - mafia - maniac)) {
-            this.winner = 'Mafia';
-            const msg = ConfigUtils.getRandomPhrase('winMafia');
-            this.log(`🏆 <b>${msg}</b>`);
-            return { winner: 'Mafia', message: msg };
-        }
-
-        // Маньяк
-        if (maniac > 0 && total <= 2 && mafia === 0) {
+        // Маньяк побеждает, если остался в формате 1-на-1 с кем угодно
+        // (или единственным живым после ночи).
+        if (maniac === 1 && total <= 2) {
             this.winner = 'Maniac';
             const msg = ConfigUtils.getRandomPhrase('winManiac');
             this.log(`🏆 <b>${msg}</b>`);
             return { winner: 'Maniac', message: msg };
         }
 
+        // Мафия
+        if (mafiaSide > 0 && mafiaSide >= (total - mafiaSide - maniac)) {
+            this.winner = 'Mafia';
+            const msg = ConfigUtils.getRandomPhrase('winMafia');
+            this.log(`🏆 <b>${msg}</b>`);
+            return { winner: 'Mafia', message: msg };
+        }
+
         // Граждане
-        if (mafia === 0 && maniac === 0) {
+        if (mafiaSide === 0 && maniac === 0) {
             this.winner = 'Citizens';
             const msg = ConfigUtils.getRandomPhrase('winCitizen');
             this.log(`🏆 <b>${msg}</b>`);

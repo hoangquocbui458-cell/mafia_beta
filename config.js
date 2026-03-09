@@ -98,7 +98,7 @@ const GAME_CONFIG = {
             displayName: 'Любовница',
             emoji: '💋',
             cssClass: 'tag-Mistress',
-            alignment: 'neutral',
+            alignment: 'evil',
             actionType: 'select',
             isNightRole: true,
             canSkip: false,
@@ -156,15 +156,15 @@ const GAME_CONFIG = {
      */
     WIN_CONDITIONS: {
         mafia: {
-            check: (alive, mafia, maniac) => mafia > 0 && mafia >= (alive - mafia - maniac),
+            check: (alive, mafiaSide, maniac) => mafiaSide > 0 && mafiaSide >= (alive - mafiaSide - maniac),
             message: 'winMafia'
         },
         maniac: {
-            check: (alive, mafia, maniac) => maniac > 0 && alive <= 2 && mafia === 0,
+            check: (alive, mafiaSide, maniac) => maniac === 1 && alive <= 2,
             message: 'winManiac'
         },
         citizens: {
-            check: (alive, mafia, maniac) => mafia === 0 && maniac === 0,
+            check: (alive, mafiaSide, maniac) => mafiaSide === 0 && maniac === 0,
             message: 'winCitizen'
         }
     },
