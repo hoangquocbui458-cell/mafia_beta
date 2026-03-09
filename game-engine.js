@@ -187,6 +187,212 @@ class GameEngine {
         }
     }
 
+    /**
+     * Применить целиком конфигурацию ролей
+     */
+    applyRoleConfig(nextConfig) {
+        const roles = Object.keys(GAME_CONFIG.DEFAULT_ROLE_CONFIG);
+        roles.forEach(role => {
+            const value = Number(nextConfig[role] || 0);
+            this.roleConfig[role] = Math.max(0, value);
+        });
+
+        // Нормализация через существующие ограничения
+        roles.forEach(role => {
+            this.setRoleCount(role, this.roleConfig[role]);
+        });
+    }
+
+    /**
+     * Подбор рекомендаций по ролям с учетом баланса и "живости" партии.
+     */
+    getRoleRecommendations(variantOffset = 0) {
+        const playersCount = this.players.length;
+        if (playersCount < 4) {
+            return {
+                recommended: null,
+                alternatives: [],
+                reason: 'Для корректной рекомендации нужно минимум 4 игрока.'
+            };
+        }
+
+        const mafiaTarget = Math.max(1, Math.min(4, Math.round(playersCount / 4)));
+        const mafiaVariants = Array.from(new Set([
+            Math.max(1, mafiaTarget - 1),
+            mafiaTarget,
+            Math.min(4, mafiaTarget + 1)
+        ])).sort((a, b) => a - b);
+
+        const maniacVariants = playersCount >= 7 ? [0, 1] : [0];
+        const bossVariants = [0, 1];
+        const toggle = [0, 1];
+
+        const candidates = [];
+
+        for (let mi = 0; mi < mafiaVariants.length; mi++) {
+            const mafia = mafiaVariants[mi];
+
+            for (let bi = 0; bi < bossVariants.length; bi++) {
+                const mafiaBoss = bossVariants[bi];
+
+                for (let mani = 0; mani < maniacVariants.length; mani++) {
+                    const maniac = maniacVariants[mani];
+
+                    for (let di = 0; di < toggle.length; di++) {
+                        const detective = toggle[di];
+
+                        for (let doci = 0; doci < toggle.length; doci++) {
+                            const doctor = toggle[doci];
+
+                            for (let bgi = 0; bgi < toggle.length; bgi++) {
+                                const bodyguard = toggle[bgi];
+
+                                for (let li = 0; li < toggle.length; li++) {
+                                    const lucky = toggle[li];
+
+                                    const mistressVariants = detective > 0 ? [0, 1] : [0];
+                                    for (let mri = 0; mri < mistressVariants.length; mri++) {
+                                        const mistress = mistressVariants[mri];
+
+                                        const config = {
+                                            Mafia: mafia,
+                                            MafiaBoss: mafiaBoss,
+                                            Maniac: maniac,
+                                            Detective: detective,
+                                            Doctor: doctor,
+                                            Bodyguard: bodyguard,
+                                            Lucky: lucky,
+                                            Mistress: mistress
+                                        };
+
+                                        const totalSpecial = Object.values(config).reduce((a, b) => a + b, 0);
+                                        const citizens = playersCount - totalSpecial;
+                                        if (citizens < 1) continue;
+
+                                        if (config.Mafia < 1) continue;
+                                        if (config.MafiaBoss > 1) continue;
+                                        if (config.Mistress > 0 && config.Detective === 0) continue;
+
+                                        const nightRoles = config.Mafia + config.MafiaBoss + config.Maniac + config.Detective + config.Doctor + config.Bodyguard + config.Mistress;
+                                        if (nightRoles > Math.ceil(playersCount * 0.72)) continue;
+
+                                        const scored = this.scoreRoleRecommendation(config, playersCount, citizens);
+                                        candidates.push(scored);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        candidates.sort((a, b) => b.score - a.score);
+
+        if (!candidates.length) {
+            return {
+                recommended: null,
+                alternatives: [],
+                reason: 'Не удалось подобрать валидную рекомендацию под текущий стол.'
+            };
+        }
+
+        const offset = Math.max(0, variantOffset || 0);
+        const bestPool = candidates.slice(0, Math.min(5, candidates.length));
+        const recommended = bestPool[offset % bestPool.length];
+        const alternatives = bestPool.filter(item => item !== recommended).slice(0, 2);
+
+        return {
+            recommended,
+            alternatives,
+            reason: this.buildRecommendationReason(recommended)
+        };
+    }
+
+    scoreRoleRecommendation(config, playersCount, citizens) {
+        const mafiaSide = config.Mafia + config.MafiaBoss + config.Mistress;
+        const cityPower =
+            citizens +
+            config.Doctor * 0.95 +
+            config.Detective * 0.9 +
+            config.Bodyguard * 0.8 +
+            config.Lucky * 0.6;
+        const mafiaPower =
+            mafiaSide * 1.05 +
+            config.MafiaBoss * 0.35 +
+            config.Mistress * 0.45;
+        const maniacPower = config.Maniac * (playersCount >= 8 ? 0.9 : 1.05);
+
+        const balancePenalty = Math.abs(mafiaPower - cityPower) * 8;
+        const targetVariety = playersCount <= 6 ? 3 : (playersCount <= 9 ? 4 : 5);
+        const variety = Object.keys(config).filter(role => config[role] > 0).length;
+        const varietyPenalty = Math.abs(variety - targetVariety) * 4;
+
+        const nightRoles = config.Mafia + config.MafiaBoss + config.Maniac + config.Detective + config.Doctor + config.Bodyguard + config.Mistress;
+        const overloadPenalty = nightRoles > Math.ceil(playersCount * 0.65)
+            ? (nightRoles - Math.ceil(playersCount * 0.65)) * 6
+            : 0;
+
+        const citizensRatio = citizens / playersCount;
+        const ratioPenalty = citizensRatio < 0.32
+            ? (0.32 - citizensRatio) * 70
+            : (citizensRatio > 0.68 ? (citizensRatio - 0.68) * 40 : 0);
+
+        let livenessBonus = 0;
+        if (config.Detective > 0 && config.Mistress > 0) livenessBonus += 7;
+        if (config.Doctor > 0 && mafiaSide > 0) livenessBonus += 5;
+        if (config.Bodyguard > 0 && (mafiaSide + config.Maniac) > 0) livenessBonus += 4;
+        if (config.Maniac > 0 && playersCount >= 7) livenessBonus += 3;
+        if (config.MafiaBoss > 0 && config.Mafia > 0) livenessBonus += 2;
+
+        const chaosPenalty = (config.Maniac > 0 && mafiaSide >= 3 && playersCount <= 8) ? 6 : 0;
+
+        const score =
+            100
+            - balancePenalty
+            - varietyPenalty
+            - overloadPenalty
+            - ratioPenalty
+            - chaosPenalty
+            + livenessBonus;
+
+        const balanceIndex = Math.max(0, 100 - Math.round(balancePenalty));
+
+        return {
+            config,
+            citizens,
+            score,
+            balanceIndex,
+            metrics: {
+                mafiaPower,
+                cityPower,
+                maniacPower,
+                nightRoles,
+                livenessBonus
+            }
+        };
+    }
+
+    buildRecommendationReason(recommendation) {
+        const cfg = recommendation.config;
+        const parts = [];
+
+        parts.push(`Баланс ${recommendation.balanceIndex}/100`);
+        parts.push(`Ночных ролей: ${recommendation.metrics.nightRoles}`);
+
+        if (cfg.Detective > 0 && cfg.Mistress > 0) {
+            parts.push('есть дуэль Детектив vs Любовница');
+        }
+        if (cfg.Maniac > 0) {
+            parts.push('Маньяк добавляет нервный эндгейм');
+        }
+        if (cfg.Doctor > 0 || cfg.Bodyguard > 0) {
+            parts.push('у города есть инструменты спасения');
+        }
+
+        return parts.join(' · ');
+    }
+
     // ========== ФАЗЫ ИГРЫ ==========
 
     /**

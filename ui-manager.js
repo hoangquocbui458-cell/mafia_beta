@@ -364,7 +364,52 @@ const UIManager = {
      */
     renderRoleConfig() {
         const lp = document.getElementById('lp');
+        const recommendationCard = document.getElementById('roleRecommendationCard');
         if (!lp) return;
+
+        const recommendationPack = gameEngine.getRoleRecommendations(window.roleRecommendationOffset || 0);
+        if (recommendationCard) {
+            if (!recommendationPack.recommended) {
+                recommendationCard.innerHTML = `<div class="role-reco-empty">${recommendationPack.reason || 'Рекомендация недоступна'}</div>`;
+            } else {
+                const reco = recommendationPack.recommended;
+                const cfg = reco.config;
+                const recoRoles = [
+                    ['MafiaBoss', 'Босс'],
+                    ['Mafia', 'Мафия'],
+                    ['Mistress', 'Любовница'],
+                    ['Maniac', 'Маньяк'],
+                    ['Detective', 'Детектив'],
+                    ['Doctor', 'Доктор'],
+                    ['Bodyguard', 'Телохранитель'],
+                    ['Lucky', 'Счастливчик']
+                ]
+                    .filter(([role]) => (cfg[role] || 0) > 0)
+                    .map(([role, title]) => `<span class="reco-chip">${title}: <b>${cfg[role]}</b></span>`)
+                    .join('');
+
+                const altText = (recommendationPack.alternatives || [])
+                    .map(item => {
+                        const altCfg = item.config;
+                        return `М:${altCfg.Mafia}${altCfg.MafiaBoss ? '+Б1' : ''}${altCfg.Mistress ? '+Л1' : ''} · Г-контроль:${altCfg.Detective + altCfg.Doctor + altCfg.Bodyguard} · Маньяк:${altCfg.Maniac}`;
+                    })
+                    .join(' | ');
+
+                recommendationCard.innerHTML = `
+                    <div class="role-reco-head">
+                        <h4>Рекомендовано для ${gameEngine.players.length} игроков</h4>
+                        <span class="role-reco-balance">Баланс: ${reco.balanceIndex}/100</span>
+                    </div>
+                    <p class="role-reco-reason">${recommendationPack.reason}</p>
+                    <div class="role-reco-chips">${recoRoles}<span class="reco-chip citizen">Мирные: <b>${reco.citizens}</b></span></div>
+                    ${altText ? `<p class="role-reco-alt"><b>Еще рабочие варианты:</b> ${altText}</p>` : ''}
+                    <div class="role-reco-actions">
+                        <button class="btn b-o" onclick="refreshRoleRecommendation()">Обновить вариант</button>
+                        <button class="btn b-g" onclick="applyRoleRecommendation()">Принять рекомендацию</button>
+                    </div>
+                `;
+            }
+        }
 
         lp.innerHTML = Object.keys(GAME_CONFIG.ROLES)
             .filter(r => r !== 'Citizen')  // Не показываем Гражданина

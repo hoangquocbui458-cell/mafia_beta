@@ -23,6 +23,7 @@ window.noExileMessage = '';
 window.roleAssignmentOrder = [];
 window.ps = window.ps || [];
 window.actionTapGuard = { key: '', at: 0 };
+window.roleRecommendationOffset = 0;
 
 function isRapidRepeatTap(actionKey, thresholdMs = 380) {
     const now = Date.now();
@@ -101,6 +102,22 @@ function go(screenNum) {
 
 function toggleGuide() {
     UIManager.toggleGuide();
+}
+
+function refreshRoleRecommendation() {
+    window.roleRecommendationOffset = (window.roleRecommendationOffset || 0) + 1;
+    UIManager.renderRoleConfig();
+}
+
+function applyRoleRecommendation() {
+    const recommendationPack = gameEngine.getRoleRecommendations(window.roleRecommendationOffset || 0);
+    if (!recommendationPack || !recommendationPack.recommended) {
+        alert('Сейчас не удалось подобрать валидную рекомендацию для этого стола.');
+        return;
+    }
+
+    gameEngine.applyRoleConfig(recommendationPack.recommended.config);
+    UIManager.renderRoleConfig();
 }
 
 function switchGuideTab(tabName) {
@@ -574,4 +591,6 @@ window.openRoastFlow = openRoastFlow;
 window.submitPraise = submitPraise;
 window.submitRoast = submitRoast;
 window.closeFeedback = closeFeedback;
+window.refreshRoleRecommendation = refreshRoleRecommendation;
+window.applyRoleRecommendation = applyRoleRecommendation;
 
