@@ -449,12 +449,7 @@ const UIManager = {
                 topInfoStack.className = 'top-info-stack';
             }
             const actorLabel = this.getNightRoleActorLabel(currentRole);
-            const nextRole = gameEngine.activeNightRoles[gameEngine.currentNightRoleIndex + 1] || null;
-            const nextRoleText = nextRole
-                ? `${ConfigUtils.getRoleInfo(nextRole).displayName} ${ConfigUtils.getRoleInfo(nextRole).emoji}`
-                : 'Город просыпается ☀️';
-
-            nP.innerHTML = `<h3>Ходит ${roleInfo.displayName} ${roleInfo.emoji} → ${actorLabel}</h3><p>Далее: ${nextRoleText}</p>`;
+            nP.innerHTML = `<h3>Ходит ${roleInfo.displayName} ${roleInfo.emoji} → ${actorLabel}</h3>`;
             vS.innerText = '';
 
             if (currentRole === 'Detective' && gameEngine.roleStates.Mistress?.target !== undefined && gameEngine.roleStates.Mistress?.target !== null) {
@@ -529,7 +524,7 @@ const UIManager = {
             if (topInfoStack) {
                 topInfoStack.className = 'top-info-stack';
             }
-            nP.innerHTML = `<h3>Игроки знакомятся друг с другом и рассказывают свои истории</h3>`;
+            nP.innerHTML = `<h3>Игроки знакомятся друг с другом</h3><p>Коротко представляются и задают тон всей партии.</p>`;
             vS.innerText = '';
 
             document.getElementById('cfB').innerText = 'Наступает ночь';

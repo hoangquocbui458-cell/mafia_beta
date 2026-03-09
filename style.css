@@ -282,7 +282,7 @@ body::before {
 .top-info-stack.mode-lynch .top-info-meta {
     display: block;
     margin-top: 8px;
-    padding-top: 20px;
+    padding-top: 10px;
 }
 
 .top-info-stack.mode-lynch #header-summary {
@@ -808,9 +808,9 @@ input:focus {
 }
 
 .vote-selected {
-    border-color: rgba(82, 194, 115, 0.7) !important;
-    background: rgba(82, 194, 115, 0.12) !important;
-    box-shadow: inset 0 0 0 1px rgba(82, 194, 115, 0.2);
+    border-color: rgba(95, 156, 245, 0.72) !important;
+    background: rgba(95, 156, 245, 0.14) !important;
+    box-shadow: inset 0 0 0 1px rgba(95, 156, 245, 0.24);
 }
 
 .isOut { opacity: 0.3 !important; filter: grayscale(1); pointer-events: none; }
