@@ -366,6 +366,7 @@ const UIManager = {
         const lp = document.getElementById('lp');
         const recommendationCard = document.getElementById('roleRecommendationCard');
         const manualRoleActions = document.getElementById('manualRoleActions');
+        const roleDistributeBtn = document.getElementById('roleDistributeBtn');
         if (!lp) return;
 
         const recommendationPack = gameEngine.getRoleRecommendations();
@@ -415,10 +416,15 @@ const UIManager = {
 
         if (manualRoleActions) {
             const showRestoreReco = totalRoles === 0;
+            const showClearConstructor = totalRoles > 0;
             manualRoleActions.innerHTML = `
-                <button class="btn b-o" onclick="resetRoleConstructor()">Очистить конструктор</button>
+                ${showClearConstructor ? '<button class="btn b-o" onclick="resetRoleConstructor()">Очистить конструктор</button>' : ''}
                 ${showRestoreReco ? '<button class="btn b-g" onclick="applyRoleRecommendation()">Вернуть рекомендованную раскладку</button>' : ''}
             `;
+        }
+
+        if (roleDistributeBtn) {
+            roleDistributeBtn.disabled = totalRoles <= 0;
         }
 
         lp.innerHTML = Object.keys(GAME_CONFIG.ROLES)
