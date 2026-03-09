@@ -23,7 +23,7 @@ window.noExileMessage = '';
 window.roleAssignmentOrder = [];
 window.ps = window.ps || [];
 window.actionTapGuard = { key: '', at: 0 };
-window.roleRecommendationOffset = 0;
+window.roleRecommendationSeedPlayers = null;
 
 function isRapidRepeatTap(actionKey, thresholdMs = 380) {
     const now = Date.now();
@@ -78,6 +78,7 @@ function addP() {
 
     gameEngine.addPlayer();
     window.ps = gameEngine.players;
+    window.roleRecommendationSeedPlayers = null;
     UIManager.renderPlayerSetup();
     UIManager.updateHeader(1);
 }
@@ -88,6 +89,7 @@ function addP() {
 function delP(index) {
     gameEngine.removePlayer(index);
     window.ps = gameEngine.players;
+    window.roleRecommendationSeedPlayers = null;
     UIManager.renderPlayerSetup();
     UIManager.updateHeader(1);
 }
@@ -104,19 +106,21 @@ function toggleGuide() {
     UIManager.toggleGuide();
 }
 
-function refreshRoleRecommendation() {
-    window.roleRecommendationOffset = (window.roleRecommendationOffset || 0) + 1;
-    UIManager.renderRoleConfig();
-}
-
 function applyRoleRecommendation() {
-    const recommendationPack = gameEngine.getRoleRecommendations(window.roleRecommendationOffset || 0);
+    const recommendationPack = gameEngine.getRoleRecommendations();
     if (!recommendationPack || !recommendationPack.recommended) {
         alert('Сейчас не удалось подобрать валидную рекомендацию для этого стола.');
         return;
     }
 
     gameEngine.applyRoleConfig(recommendationPack.recommended.config);
+    window.roleRecommendationSeedPlayers = gameEngine.players.length;
+    UIManager.renderRoleConfig();
+}
+
+function resetRoleConstructor() {
+    gameEngine.clearRoleConfig();
+    window.roleRecommendationSeedPlayers = gameEngine.players.length;
     UIManager.renderRoleConfig();
 }
 
@@ -591,6 +595,6 @@ window.openRoastFlow = openRoastFlow;
 window.submitPraise = submitPraise;
 window.submitRoast = submitRoast;
 window.closeFeedback = closeFeedback;
-window.refreshRoleRecommendation = refreshRoleRecommendation;
 window.applyRoleRecommendation = applyRoleRecommendation;
+window.resetRoleConstructor = resetRoleConstructor;
 

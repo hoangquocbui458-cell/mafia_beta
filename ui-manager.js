@@ -367,7 +367,19 @@ const UIManager = {
         const recommendationCard = document.getElementById('roleRecommendationCard');
         if (!lp) return;
 
-        const recommendationPack = gameEngine.getRoleRecommendations(window.roleRecommendationOffset || 0);
+        const recommendationPack = gameEngine.getRoleRecommendations();
+        const playersCount = gameEngine.players.length;
+
+        // При первом входе на шаг ролей для текущего числа игроков
+        // автоматически выставляем лучшую рекомендацию.
+        if (window.roleRecommendationSeedPlayers !== playersCount && recommendationPack.recommended) {
+            gameEngine.applyRoleConfig(recommendationPack.recommended.config);
+            window.roleRecommendationSeedPlayers = playersCount;
+        }
+
+        const totalRoles = Object.values(gameEngine.roleConfig).reduce((a, b) => a + b, 0);
+        const totalCitizens = Math.max(0, gameEngine.players.length - totalRoles);
+
         if (recommendationCard) {
             if (!recommendationPack.recommended) {
                 recommendationCard.innerHTML = `<div class="role-reco-empty">${recommendationPack.reason || 'Рекомендация недоступна'}</div>`;
@@ -388,24 +400,17 @@ const UIManager = {
                     .map(([role, title]) => `<span class="reco-chip">${title}: <b>${cfg[role]}</b></span>`)
                     .join('');
 
-                const altText = (recommendationPack.alternatives || [])
-                    .map(item => {
-                        const altCfg = item.config;
-                        return `М:${altCfg.Mafia}${altCfg.MafiaBoss ? '+Б1' : ''}${altCfg.Mistress ? '+Л1' : ''} · Г-контроль:${altCfg.Detective + altCfg.Doctor + altCfg.Bodyguard} · Маньяк:${altCfg.Maniac}`;
-                    })
-                    .join(' | ');
+                const showRestoreReco = totalRoles === 0;
 
                 recommendationCard.innerHTML = `
                     <div class="role-reco-head">
                         <h4>Рекомендовано для ${gameEngine.players.length} игроков</h4>
-                        <span class="role-reco-balance">Баланс: ${reco.balanceIndex}/100</span>
                     </div>
                     <p class="role-reco-reason">${recommendationPack.reason}</p>
                     <div class="role-reco-chips">${recoRoles}<span class="reco-chip citizen">Мирные: <b>${reco.citizens}</b></span></div>
-                    ${altText ? `<p class="role-reco-alt"><b>Еще рабочие варианты:</b> ${altText}</p>` : ''}
                     <div class="role-reco-actions">
-                        <button class="btn b-o" onclick="refreshRoleRecommendation()">Обновить вариант</button>
-                        <button class="btn b-g" onclick="applyRoleRecommendation()">Принять рекомендацию</button>
+                        <button class="btn b-o" onclick="resetRoleConstructor()">Очистить конструктор</button>
+                        ${showRestoreReco ? '<button class="btn b-g" onclick="applyRoleRecommendation()">Вернуть рекомендованную раскладку</button>' : ''}
                     </div>
                 `;
             }
@@ -435,9 +440,6 @@ const UIManager = {
                 `;
             }).join('');
 
-        const totalRoles = Object.values(gameEngine.roleConfig).reduce((a, b) => a + b, 0);
-        const totalCitizens = Math.max(0, gameEngine.players.length - totalRoles);
-        
         document.getElementById('totalC').innerText = gameEngine.players.length;
         document.getElementById('citC').innerText = totalCitizens;
     },

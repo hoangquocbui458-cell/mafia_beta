@@ -629,13 +629,6 @@ input:focus {
     color: #dbe9ff;
 }
 
-.role-reco-balance {
-    font-size: 12px;
-    color: #b7d1ff;
-    font-weight: 700;
-    white-space: nowrap;
-}
-
 .role-reco-reason {
     margin: 8px 0 0 0;
     font-size: 13px;
@@ -675,10 +668,14 @@ input:focus {
 }
 
 .role-reco-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: flex;
+    flex-wrap: wrap;
     gap: 8px;
     margin-top: 12px;
+}
+
+.role-reco-actions .btn {
+    flex: 1 1 220px;
 }
 
 .role-reco-empty {

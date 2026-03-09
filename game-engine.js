@@ -204,14 +204,24 @@ class GameEngine {
     }
 
     /**
+     * Полностью очистить конструктор ролей (все спецроли в 0)
+     */
+    clearRoleConfig() {
+        const zeroConfig = {};
+        Object.keys(GAME_CONFIG.DEFAULT_ROLE_CONFIG).forEach(role => {
+            zeroConfig[role] = 0;
+        });
+        this.applyRoleConfig(zeroConfig);
+    }
+
+    /**
      * Подбор рекомендаций по ролям с учетом баланса и "живости" партии.
      */
-    getRoleRecommendations(variantOffset = 0) {
+    getRoleRecommendations() {
         const playersCount = this.players.length;
         if (playersCount < 4) {
             return {
                 recommended: null,
-                alternatives: [],
                 reason: 'Для корректной рекомендации нужно минимум 4 игрока.'
             };
         }
@@ -292,19 +302,14 @@ class GameEngine {
         if (!candidates.length) {
             return {
                 recommended: null,
-                alternatives: [],
                 reason: 'Не удалось подобрать валидную рекомендацию под текущий стол.'
             };
         }
 
-        const offset = Math.max(0, variantOffset || 0);
-        const bestPool = candidates.slice(0, Math.min(5, candidates.length));
-        const recommended = bestPool[offset % bestPool.length];
-        const alternatives = bestPool.filter(item => item !== recommended).slice(0, 2);
+        const recommended = candidates[0];
 
         return {
             recommended,
-            alternatives,
             reason: this.buildRecommendationReason(recommended)
         };
     }
@@ -377,7 +382,6 @@ class GameEngine {
         const cfg = recommendation.config;
         const parts = [];
 
-        parts.push(`Баланс ${recommendation.balanceIndex}/100`);
         parts.push(`Ночных ролей: ${recommendation.metrics.nightRoles}`);
 
         if (cfg.Detective > 0 && cfg.Mistress > 0) {
