@@ -684,6 +684,7 @@ input:focus {
 
 .manual-setup-card h3 {
     margin-bottom: 12px;
+    text-align: left;
 }
 
 .manual-setup-card #lp {
