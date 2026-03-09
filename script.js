@@ -217,9 +217,14 @@ function submitRoast() {
 function getRoleAssignmentIntro(roleName) {
     const roleInfo = ConfigUtils.getRoleInfo(roleName);
     const roleLabel = '<b>' + roleInfo.displayName + '</b>';
+    const roleBrief = ConfigUtils.getNightRoleBrief(roleName);
+
+    const roleBriefText = roleBrief
+        ? `<br><br><b>Мотивация:</b> ${roleBrief.motivation}<br><b>Способность:</b> ${roleBrief.abilities}<br><b>Цель:</b> ${roleBrief.goal}`
+        : '';
 
     const passiveRoleIntro = {
-        Lucky: `${roleInfo.emoji} На очереди ${roleLabel}. Эта роль ночных целей не выбирает, но однажды может пережить смертельный удар.`
+        Lucky: `${roleInfo.emoji} На очереди ${roleLabel}. Эта роль ночных целей не выбирает, но однажды может пережить смертельный удар.${roleBriefText}`
     };
 
     if (passiveRoleIntro[roleName]) {
@@ -231,10 +236,10 @@ function getRoleAssignmentIntro(roleName) {
             role: roleLabel,
             roleType: roleInfo.temperament
         });
-        if (msg) return msg;
+        if (msg) return `${msg}${roleBriefText}`;
     }
 
-    return `${roleInfo.emoji} Назначаем роль ${roleLabel}.`; 
+    return `${roleInfo.emoji} Назначаем роль ${roleLabel}.${roleBriefText}`;
 }
 
 /**

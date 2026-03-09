@@ -407,11 +407,25 @@ const UIManager = {
         if (!currentRole) return;
 
         const roleInfo = ConfigUtils.getRoleInfo(currentRole);
+        const roleBrief = ConfigUtils.getNightRoleBrief(currentRole);
         const count = gameEngine.players.filter(p => p.role === currentRole).length;
 
+        const roleBriefHtml = roleBrief
+            ? `
+                <div class="role-assign-brief">
+                    <p><span class="brief-label">Мотивация:</span> ${roleBrief.motivation}</p>
+                    <p><span class="brief-label">Способность:</span> ${roleBrief.abilities}</p>
+                    <p><span class="brief-label">Цель:</span> ${roleBrief.goal}</p>
+                </div>
+            `
+            : '';
+
         document.getElementById('roleLimitInfo').innerHTML = `
-            <h3>${roleInfo.emoji} ${roleInfo.displayName}</h3>
-            <div class="role-count-badge">${count} / ${gameEngine.roleConfig[currentRole]}</div>
+            <div class="role-assign-head">
+                <h3>${roleInfo.emoji} ${roleInfo.displayName}</h3>
+                <div class="role-count-badge">${count} / ${gameEngine.roleConfig[currentRole]}</div>
+            </div>
+            ${roleBriefHtml}
         `;
 
         const orderedPlayers = gameEngine.players
@@ -474,20 +488,7 @@ const UIManager = {
                 topInfoStack.className = 'top-info-stack';
             }
             const actorLabel = this.getNightRoleActorLabel(currentRole);
-            const roleBrief = ConfigUtils.getNightRoleBrief(currentRole);
-            let roleBriefHtml = '';
-
-            if (roleBrief) {
-                roleBriefHtml = `
-                    <div class="night-role-brief">
-                        <p class="brief-line"><span class="brief-label">Мотивация:</span> ${roleBrief.motivation}</p>
-                        <p class="brief-line"><span class="brief-label">Способность:</span> ${roleBrief.abilities}</p>
-                        <p class="brief-line"><span class="brief-label">Цель:</span> ${roleBrief.goal}</p>
-                    </div>
-                `;
-            }
-
-            nP.innerHTML = `<h3>Ходит ${roleInfo.displayName} ${roleInfo.emoji} → ${actorLabel}</h3>${roleBriefHtml}`;
+            nP.innerHTML = `<h3>Ходит ${roleInfo.displayName} ${roleInfo.emoji} → ${actorLabel}</h3>`;
             vS.innerText = '';
 
             if (currentRole === 'Detective' && gameEngine.roleStates.Mistress?.target !== undefined && gameEngine.roleStates.Mistress?.target !== null) {
