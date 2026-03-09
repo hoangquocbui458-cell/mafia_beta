@@ -413,9 +413,7 @@ const UIManager = {
         const roleBriefHtml = roleBrief
             ? `
                 <div class="role-assign-brief">
-                    <p><span class="brief-label">Мотивация:</span> ${roleBrief.motivation}</p>
-                    <p><span class="brief-label">Способность:</span> ${roleBrief.abilities}</p>
-                    <p><span class="brief-label">Цель:</span> ${roleBrief.goal}</p>
+                    <p>${roleBrief}</p>
                 </div>
             `
             : '';
