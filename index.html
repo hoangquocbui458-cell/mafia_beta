@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+    <title></title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="msg-scr">
+        <div id="msg-text"></div>
+        <button class="btn b-g msg-continue-btn" onclick="closeMsg()">Продолжить</button>
+    </div>
+
+    <div class="hdr">
+        <div class="hdr-row">
+            <div class="hdr-left-controls">
+                <button class="reset-link reset-guide" onclick="toggleGuide()">Правила</button>
+            </div>
+            <h2 id="main-title"></h2>
+            <div class="hdr-right-controls">
+                <button class="reset-link reset-log" onclick="toggleLog()">Лог</button>
+                <button class="reset-link" onclick="confirmReset()">Перезапуск</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="s0" class="s a">
+        <div class="welcome-hero">
+            <h1>Добро пожаловать в игру</h1>
+            <p>Впереди партия, где каждое решение оставит след: ночью шепот ролей, днем приговор толпы.</p>
+        </div>
+        <div class="welcome-card">
+            <h3 class="welcome-title-gap">Готовы устроить маленькую катастрофу?</h3>
+            <p class="welcome-copy-gap">Собираем подозреваемых, выдаем роли и запускаем ночь. Дальше уже без гарантий.</p>
+            <button class="btn b-g welcome-primary-btn" onclick="go(1)">Запустить партию</button>
+            <button class="btn b-o" onclick="toggleGuide()">Правила</button>
+        </div>
+        <div class="welcome-nps">
+            <div class="welcome-nps-title">Оценить автора можно прямо сейчас</div>
+            <div class="welcome-nps-row">
+                <button class="btn nps-btn" onclick="openPraiseFlow()">😎 Похвалить автора</button>
+                <button class="btn nps-btn" onclick="openRoastFlow()">🤬 Наругать автора</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="s1" class="s">
+        <div class="welcome-card">
+            <h3 class="setup-title">Состав подозреваемых</h3>
+            <p class="setup-copy">Внеси всех, кто будет в этой мясорубке, и переходи к раскладке ролей.</p>
+        </div>
+        <div id="l1"></div>
+        <div class="f-b">
+            <button class="btn b-b" onclick="addP()">+ Добавить игрока</button>
+            <button class="btn b-g" onclick="if(ps.length>=4){go(2)}else{alert('Нужно минимум 4 игрока, иначе это не мафия, а семейный чат.')}">Дальше</button>
+        </div>
+    </div>
+
+    <div id="s2" class="s">
+        <div class="welcome-card role-setup-intro">
+            <h3>Расклад ролей 🃏</h3>
+            <p>Выставь набор ролей под вашу партию. Баланс здесь решает, насколько быстро все пойдет к чертям.</p>
+        </div>
+        <div class="totals-card">
+            Игроков: <b id="totalC">0</b> | Мирных: <b id="citC" class="accent-citizens">0</b>
+        </div>
+        <div id="lp"></div>
+        <div class="f-b">
+            <button class="btn b-o" onclick="go(1)">Назад</button>
+            <button class="btn b-g" onclick="checkR()">Раздать роли</button>
+        </div>
+    </div>
+
+    <div id="s3" class="s">
+        <div id="roleAssignStack" class="top-info-stack role-assign-stack">
+            <div id="roleLimitInfo"></div>
+        </div>
+        <div id="l3"></div>
+        <div class="f-b"><button class="btn b-g" onclick="nextRS()">Зафиксировать</button></div>
+    </div>
+
+    <div id="s4" class="s">
+        <div id="topInfoStack" class="top-info-stack">
+            <div id="nightStatusPanel"></div>
+            <div class="top-info-meta">
+                <div id="header-summary"></div>
+                <div id="voteStat"></div>
+            </div>
+        </div>
+        <div id="l4"></div>
+        <div class="f-b" id="game-controls">
+            <button id="skB" class="btn b-o" onclick="doAction(null)">Пропустить ход</button>
+            <button id="cfB" class="btn b-g" onclick="doAction(selId)">Выполнить</button>
+        </div>
+    </div>
+
+    <div id="s5" class="s">
+        <div id="finalResultsPanel"></div>
+        <div id="finalLogList" class="final-log-list"></div>
+        <div class="f-b">
+            <button class="btn b-o" onclick="exportLogsTxt()">Экспорт .txt</button>
+            <button class="btn b-b" onclick="location.reload()">Запустить заново</button>
+        </div>
+    </div>
+
+    <div id="s6" class="s">
+        <div class="welcome-card no-exile-card">
+            <h3 class="no-exile-title">Решение ведущего</h3>
+            <p id="noExileMessage" class="no-exile-message"></p>
+            <p class="no-exile-hint">Подтверждаешь решение и город снова ныряет в ночь.</p>
+        </div>
+        <div class="f-b">
+            <button class="btn b-g" onclick="confirmNoExileToNight()">Подтвердить и гасить свет</button>
+        </div>
+    </div>
+
+    <div id="log-overlay" class="overlay" onclick="if(event.target===this)toggleLog()">
+        <div class="overlay-content">
+            <div class="overlay-head overlay-head-lg">
+                <h3 class="overlay-title">Хроника беспредела 📖</h3>
+                <div class="overlay-actions">
+                    <button class="reset-link reset-log overlay-export-btn" onclick="exportLogsTxt()">Экспорт .txt</button>
+                    <button class="del-btn overlay-close" onclick="toggleLog()">✕</button>
+                </div>
+            </div>
+            <div id="log-list"></div>
+        </div>
+    </div>
+
+    <div id="guide-overlay" class="overlay guide-overlay" onclick="if(event.target===this)toggleGuide()">
+        <div class="overlay-content guide-content">
+            <div class="overlay-head">
+                <h3 class="overlay-title">Памятка Ведущего</h3>
+                <button class="del-btn overlay-close" onclick="toggleGuide()">✕</button>
+            </div>
+
+            <div class="guide-tabs">
+                <button id="guide-tab-roles" class="guide-tab-btn active" onclick="switchGuideTab('roles')">Роли</button>
+                <button id="guide-tab-flow" class="guide-tab-btn" onclick="switchGuideTab('flow')">Сценарий Ведущего</button>
+            </div>
+
+            <div id="guide-panel-roles" class="guide-panel active">
+                <p class="guide-intro">Ты не участник, ты приговор в человеческом виде. Говори четко, веди жестко.</p>
+
+                <div class="guide-section">
+                    <h4>Активные роли</h4>
+                    <p><b>Мафия</b>: выбирает 1 цель на убийство.</p>
+                    <p><b>Босс мафии</b>: стреляет, когда обычной мафии не осталось; если умирает, титул переходит живому мафиози.</p>
+                    <p><b>Доктор</b>: лечит 1 живого (можно себя), но не одну и ту же цель две ночи подряд; пропускать ход нельзя.</p>
+                    <p><b>Телохранитель</b>: защищает 1 живого, себя выбрать нельзя; удар по цели принимает на себя.</p>
+                    <p><b>Детектив</b>: проверяет 1 живого, себя нельзя, одну и ту же цель повторно проверять нельзя; пропускать ход нельзя.</p>
+                    <p><b>Любовница</b>: выбирает цель, и если Детектив проверяет ее в эту ночь, ответ становится ложным; пропускать ход нельзя.</p>
+                    <p><b>Маньяк</b>: убивает 1 живого, ход не пропускает.</p>
+                </div>
+
+                <div class="guide-section">
+                    <h4>Пассивные роли</h4>
+                    <p><b>Счастливчик</b>: один раз переживает первую смертельную ночную атаку.</p>
+                    <p><b>Мирный</b>: ночью без действия, днем участвует в голосовании.</p>
+                </div>
+
+                <div class="guide-section">
+                    <h4>Жесткие правила</h4>
+                    <p>Мертвые не голосуют и не делают ночных действий.</p>
+                    <p>Минимум состава: хотя бы 1 мафия и хотя бы 1 мирный.</p>
+                    <p>Босс мафии в партии может быть только один.</p>
+                </div>
+            </div>
+
+            <div id="guide-panel-flow" class="guide-panel">
+                <p class="guide-intro">Твой стиль: быстро, сухо, без соплей. Чем ровнее темп, тем вкуснее партия.</p>
+
+                <div class="guide-section">
+                    <h4>Перед игрой</h4>
+                    <p>1. Собери минимум 4 игроков.</p>
+                    <p>2. Проверь состав: минимум 1 мафия и 1 мирный, Босс мафии не больше одного.</p>
+                    <p>3. Раздай роли по экрану назначения и подтверди каждую роль по очереди.</p>
+                </div>
+
+                <div class="guide-section">
+                    <h4>Ночь</h4>
+                    <p>1. Роли ходят строго по очереди на экране.</p>
+                    <p>2. Следи за ограничениями: Доктор не лечит подряд одну цель, Телохранитель не защищает себя, Детектив не проверяет себя и повторно ту же цель.</p>
+                    <p>3. Если у Детектива отмечен "Ложный ответ", значит Любовница закрыла цель тенью.</p>
+                    <p>4. После последней роли заверши ночь и открой рассвет.</p>
+                </div>
+
+                <div class="guide-section">
+                    <h4>День</h4>
+                    <p>1. Озвучь утренний отчет и открой голосование.</p>
+                    <p>2. Голосуют только живые.</p>
+                    <p>3. Первая ничья: переголосование между лидерами.</p>
+                    <p>4. Вторая ничья: никто не изгнан, переход к ночи через подтверждение ведущего.</p>
+                </div>
+
+                <div class="guide-section">
+                    <h4>Финал</h4>
+                    <p>1. После каждого изгнания и каждой ночи система сама проверяет победу.</p>
+                    <p>2. Если финал не наступил, цикл "ночь-день" продолжается.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="feedback-overlay" class="overlay" onclick="if(event.target===this)closeFeedback()">
+        <div class="overlay-content feedback-content">
+            <div class="overlay-head overlay-head-sm">
+                <h3 id="feedback-title" class="overlay-title">Обратная связь</h3>
+                <button class="del-btn overlay-close" onclick="closeFeedback()">✕</button>
+            </div>
+
+            <div id="feedback-praise-form" class="feedback-panel">
+                <p id="feedback-subtitle" class="feedback-subtitle">Давай, хвали меня</p>
+                <textarea id="feedback-input" class="feedback-input" placeholder="Пиши, как автор гениален. Или хотя бы не безнадежен."></textarea>
+                <div class="feedback-actions">
+                    <button class="btn b-o" onclick="closeFeedback()">Отбой</button>
+                    <button class="btn b-g" onclick="submitPraise()">Похвалить</button>
+                </div>
+            </div>
+
+            <div id="feedback-roast-form" class="feedback-panel hidden-panel">
+                <p id="feedback-roast-subtitle" class="feedback-subtitle">Ладно, ругай. Только с фактами.</p>
+                <textarea id="feedback-roast-input" class="feedback-input" placeholder="Выкладывай претензии. Бумага все стерпит."></textarea>
+                <div class="feedback-actions">
+                    <button class="btn b-o" onclick="closeFeedback()">Отбой</button>
+                    <button class="btn b-g" onclick="submitRoast()">Наругать автора</button>
+                </div>
+            </div>
+
+            <div id="feedback-result" class="feedback-panel hidden-panel">
+                <img id="feedback-image" class="feedback-image" alt="feedback-result">
+                <p id="feedback-result-text" class="feedback-result-text"></p>
+                <button class="btn b-g" onclick="closeFeedback()">Принято</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- АРХИТЕКТУРА ПРИЛОЖЕНИЯ:
+         - config.js: конфигурация ролей, фраз, правил
+         - roles.js: логика и ограничения каждой роли
+         - game-engine.js: основной игровой движок
+         - ui-manager.js: управление интерфейсом
+         - script.js: инициализация, функции callbacks, интеграция
+    -->
+    <script src="config.js"></script>
+    <script src="roles.js"></script>
+    <script src="game-engine.js"></script>
+    <script src="ui-manager.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
