@@ -327,8 +327,8 @@ function nextRS() {
 
     if (gameEngine.currentNightRoleIndex >= window.roleAssignmentOrder.length) {
         UIManager.showMessage(
-            "Раздача закрыта ✅",
-            "Роли выданы. Пора смотреть, кто сгорит первым.",
+            "Роли выданы ✅",
+            "Все игроки получили роли. Начинается ночь знакомства: ведущий знакомится с ночными ролями и их порядком хода.",
             () => startFirstDay()
         );
     } else {
@@ -405,7 +405,7 @@ function doAction(targetId) {
         if (tV === 0 && gameEngine.tiedPlayers.length === 0) {
             // Пропустить, если никто не голосовал
             if (confirm("Голоса нулевые. Никого не трогаем и валим в ночь?")) {
-                UIManager.showMessage("День закрыт", "Толпа устала, палач в пролете.", () => startNight());
+                UIManager.showMessage("Наступает ночь", "Толпа устала, палач в пролете.", () => startNight());
             }
             return;
         }
@@ -480,7 +480,7 @@ function doAction(targetId) {
             if (result.phase === 'END_NIGHT') {
                 UIManager.showMessage(
                     `${currentRoleInfo.displayName} уходит в тень 💤`,
-                    "Ночная смена закрыта. Поднимаем город.",
+                    "Ночная смена завершена. Наступает день.",
                     () => UIManager.endNightPhase()
                 );
                 return;

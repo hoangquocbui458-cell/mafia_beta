@@ -162,12 +162,12 @@ const UIManager = {
         }
 
         const titles = {
-            0: "Добро пожаловать в игру",
-            1: `В игре: ${gameEngine.players.length}`,
-            2: "Настройка партии",
+            0: "Главное меню",
+            1: `Игроков: ${gameEngine.players.length}`,
+            2: "Настройка ролей",
             3: "Раздача ролей",
             4: gameEngine.isDay 
-                ? (gameEngine.currentNight === 1 ? "Первый день" : `День ${gameEngine.currentNight}`)
+                ? (gameEngine.currentNight === 1 ? "День знакомства" : `День ${gameEngine.currentNight}`)
                 : `Ночь ${gameEngine.currentNight}`,
             5: "Финал партии",
             6: "Вердикт дня"
@@ -196,8 +196,18 @@ const UIManager = {
         if (!shouldShow) {
             summaryEl.innerHTML = '';
             summaryEl.classList.remove('visible');
+            summaryEl.classList.remove('night-order-mode');
             return;
         }
+
+        if (!gameEngine.isDay) {
+            summaryEl.innerHTML = this.renderNightRoleOrder();
+            summaryEl.classList.add('visible');
+            summaryEl.classList.add('night-order-mode');
+            return;
+        }
+
+        summaryEl.classList.remove('night-order-mode');
 
         const alivePlayers = gameEngine.players.filter(p => !p.isEliminated);
         const aliveByRole = {};
@@ -217,6 +227,50 @@ const UIManager = {
 
         summaryEl.innerHTML = `<span class="summary-chip total">В игре <strong>${alivePlayers.length}</strong></span>${roleParts.join('')}`;
         summaryEl.classList.add('visible');
+    },
+
+    renderNightRoleOrder() {
+        const roles = Array.isArray(gameEngine.activeNightRoles) ? gameEngine.activeNightRoles : [];
+        if (roles.length === 0) {
+            return '';
+        }
+
+        const currentIdx = Math.max(0, gameEngine.currentNightRoleIndex || 0);
+        const chips = roles.map((role, idx) => {
+            const roleInfo = ConfigUtils.getRoleInfo(role);
+            let stateClass = 'upcoming';
+
+            if (idx < currentIdx) {
+                stateClass = 'done';
+            } else if (idx === currentIdx) {
+                stateClass = 'active';
+            } else if (idx === currentIdx + 1) {
+                stateClass = 'next';
+            }
+
+            return `<span class="summary-chip night-phase ${stateClass}">${roleInfo.emoji} ${roleInfo.displayName}</span>`;
+        });
+
+        const dawnStateClass = currentIdx >= roles.length ? 'active' : 'upcoming';
+        chips.push(`<span class="summary-chip night-phase dawn ${dawnStateClass}">☀️ Город просыпается</span>`);
+
+        return chips.join('<span class="summary-arrow">→</span>');
+    },
+
+    getNightRoleActorLabel(roleName) {
+        const actors = gameEngine.players
+            .map((player, index) => ({ player, index }))
+            .filter(({ player }) => !player.isEliminated && player.role === roleName);
+
+        if (actors.length === 0) {
+            return 'нет активного игрока';
+        }
+
+        if (actors.length === 1) {
+            return gameEngine.getPlayerName(actors[0].index);
+        }
+
+        return `${gameEngine.getPlayerName(actors[0].index)} +${actors.length - 1}`;
     },
 
     /**
@@ -372,6 +426,8 @@ const UIManager = {
      * Экран 4: Основной игровой экран
      */
     renderGameScreen() {
+        this.updateHeader(4);
+
         const nP = document.getElementById('nightStatusPanel');
         const l4 = document.getElementById('l4');
         const ctrl = document.getElementById('game-controls');
@@ -392,7 +448,13 @@ const UIManager = {
             if (topInfoStack) {
                 topInfoStack.className = 'top-info-stack';
             }
-            nP.innerHTML = `<h3>Ходит ${roleInfo.displayName}</h3>`;
+            const actorLabel = this.getNightRoleActorLabel(currentRole);
+            const nextRole = gameEngine.activeNightRoles[gameEngine.currentNightRoleIndex + 1] || null;
+            const nextRoleText = nextRole
+                ? `${ConfigUtils.getRoleInfo(nextRole).displayName} ${ConfigUtils.getRoleInfo(nextRole).emoji}`
+                : 'Город просыпается ☀️';
+
+            nP.innerHTML = `<h3>Ходит ${roleInfo.displayName} ${roleInfo.emoji} → ${actorLabel}</h3><p>Далее: ${nextRoleText}</p>`;
             vS.innerText = '';
 
             if (currentRole === 'Detective' && gameEngine.roleStates.Mistress?.target !== undefined && gameEngine.roleStates.Mistress?.target !== null) {
@@ -402,7 +464,7 @@ const UIManager = {
             
             document.getElementById('cfB').innerText = 
                 (gameEngine.currentNightRoleIndex === gameEngine.activeNightRoles.length - 1) 
-                    ? "Закрыть ночь" 
+                    ? "Наступает день" 
                     : "Следующая роль";
 
             const canSkip = roleInfo.canSkip !== false;
@@ -467,10 +529,10 @@ const UIManager = {
             if (topInfoStack) {
                 topInfoStack.className = 'top-info-stack';
             }
-            nP.innerHTML = `<h3>Открытие партии</h3>`;
+            nP.innerHTML = `<h3>Игроки знакомятся друг с другом и рассказывают свои истории</h3>`;
             vS.innerText = '';
 
-            document.getElementById('cfB').innerText = 'Погасить свет';
+            document.getElementById('cfB').innerText = 'Наступает ночь';
             document.getElementById('cfB').style.display = 'flex';
             document.getElementById('skB').style.display = 'none';
             document.getElementById('cfB').onclick = () => startNight();
@@ -494,7 +556,7 @@ const UIManager = {
                 topInfoStack.className = 'top-info-stack mode-lynch';
             }
             vS.innerText = `Голоса: ${tV} / ${aC}`;
-            nP.innerHTML = `<h3>Голосование</h3>`;
+            nP.innerHTML = `<h3>Голосование</h3><p>Игроки обсуждают события ночи и выдвигают подозрения.</p>`;
             
             document.getElementById('cfB').innerText = "Вынести приговор";
             document.getElementById('cfB').style.display = (tV > 0) ? "flex" : "none";

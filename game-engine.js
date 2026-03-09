@@ -199,7 +199,7 @@ class GameEngine {
         this.activeNightRoles = ConfigUtils.getActiveNightRoles(this.roleConfig);
 
         this.log(this.getSetupSummaryHtml());
-        this.log(`<span class="log-day">--- ДЕНЬ 1: ОТКРЫТИЕ ПАРТИИ ---</span>`);
+        this.log(`<span class="log-day">--- ДЕНЬ 1: ДЕНЬ ЗНАКОМСТВА ---</span>`);
         this.log("📢 Ведущий открыл игру. Маски на местах");
         
         return {
