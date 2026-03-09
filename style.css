@@ -675,7 +675,7 @@ input:focus {
 
 .manual-setup-card {
     padding-bottom: 14px;
-    text-align: center;
+    text-align: left;
     background: var(--card-glass);
     border-radius: 16px;
     border: 1px solid var(--card-border-soft);
