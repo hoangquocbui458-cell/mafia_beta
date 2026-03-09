@@ -365,6 +365,7 @@ const UIManager = {
     renderRoleConfig() {
         const lp = document.getElementById('lp');
         const recommendationCard = document.getElementById('roleRecommendationCard');
+        const manualRoleActions = document.getElementById('manualRoleActions');
         if (!lp) return;
 
         const recommendationPack = gameEngine.getRoleRecommendations();
@@ -408,12 +409,16 @@ const UIManager = {
                     </div>
                     <p class="role-reco-reason">${recommendationPack.reason}</p>
                     <div class="role-reco-chips">${recoRoles}<span class="reco-chip citizen">Мирные: <b>${reco.citizens}</b></span></div>
-                    <div class="role-reco-actions">
-                        <button class="btn b-o" onclick="resetRoleConstructor()">Очистить конструктор</button>
-                        ${showRestoreReco ? '<button class="btn b-g" onclick="applyRoleRecommendation()">Вернуть рекомендованную раскладку</button>' : ''}
-                    </div>
                 `;
             }
+        }
+
+        if (manualRoleActions) {
+            const showRestoreReco = totalRoles === 0;
+            manualRoleActions.innerHTML = `
+                <button class="btn b-o" onclick="resetRoleConstructor()">Очистить конструктор</button>
+                ${showRestoreReco ? '<button class="btn b-g" onclick="applyRoleRecommendation()">Вернуть рекомендованную раскладку</button>' : ''}
+            `;
         }
 
         lp.innerHTML = Object.keys(GAME_CONFIG.ROLES)
