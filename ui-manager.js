@@ -258,6 +258,31 @@ const UIManager = {
     },
 
     getNightRoleActorLabel(roleName) {
+        // Специальная логика для мафии: если есть босс, показываем его; иначе показываем рядовую мафию
+        if (roleName === 'Mafia') {
+            const aliveBoss = gameEngine.players.find(p => !p.isEliminated && p.role === 'MafiaBoss');
+            if (aliveBoss) {
+                // Если есть живой босс, показываем его вместо рядовой мафии
+                return gameEngine.getPlayerName(gameEngine.players.indexOf(aliveBoss));
+            }
+
+            // Нет босса - показываем рядовую мафию
+            const actors = gameEngine.players
+                .map((player, index) => ({ player, index }))
+                .filter(({ player }) => !player.isEliminated && player.role === 'Mafia');
+
+            if (actors.length === 0) {
+                return 'нет активного игрока';
+            }
+
+            if (actors.length === 1) {
+                return gameEngine.getPlayerName(actors[0].index);
+            }
+
+            return `${gameEngine.getPlayerName(actors[0].index)} +${actors.length - 1}`;
+        }
+
+        // Для остальных ролей - стандартная логика
         const actors = gameEngine.players
             .map((player, index) => ({ player, index }))
             .filter(({ player }) => !player.isEliminated && player.role === roleName);
